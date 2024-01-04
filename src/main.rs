@@ -17,6 +17,11 @@ struct Game {
     save_file_buffer: Vec<u8>,
 }
 
+struct Enemy {
+    name: String,
+    encoded_name: [u8; 11],
+}
+
 //The idea is that you should be able to change this
 const UNKNOWN_CHAR:char = '¿';
 
@@ -38,11 +43,15 @@ fn main() {
         money: 0, 
         encoded_money: [0; 6],
     };
+    let mut rival = Enemy {
+        name: String::new(),
+        encoded_name: [0; 11],
+    };
 
     'main_loop: loop{
         match main_menu() {
-            1 => {
-                load_save_file(&mut game, &mut original_player);
+            1 => { 
+                load_save_file(&mut game, &mut original_player, &mut rival);
                 player.name  = original_player.name.to_string();
                 player.money = original_player.money;
             }
@@ -62,6 +71,7 @@ fn main() {
             6 => {
             }
             7 => {
+                change_rival_name_menu(&mut rival);
             }
             8 => {
             }
@@ -70,6 +80,31 @@ fn main() {
             }
         };
     }
+}
+fn change_rival_name_menu(rival: &mut Enemy){
+    let mut new_name = String::new();
+    
+    println!("Your enemy actual's name is {}", rival.name);
+    println!("Do you want to change it? [y/N]");
+    print!("->> ");
+    io::stdout().flush().expect("Failed to flush stdout...");
+    io::stdin()
+        .read_line(&mut new_name)
+        .expect("Failed to read user input");
+
+    if new_name.contains('Y')|| new_name.contains('y') {
+        println!("What will his new name be?");
+        print!("--> ");
+        io::stdout().flush().expect("Failed to flush stdout...");
+        new_name.clear();
+        io::stdin()
+            .read_line(&mut new_name)
+            .expect("Failed to read user input");
+ 
+    }
+    
+    rival.encoded_name = ascii_to_first_gen(&new_name);
+    rival.name = new_name.trim().to_string();
 }
 
 fn get_money(game_struct: &Game) -> i32{
@@ -99,6 +134,7 @@ fn change_player_name(player_struct: &mut Player){
         .read_line(&mut new_name)
         .expect("Failed to read user input");
 
+    new_name.trim().to_string();
     new_encoded_name = ascii_to_first_gen(&new_name);
 
     println!("Encoded name: {:?}", new_encoded_name);
@@ -108,7 +144,23 @@ fn change_player_name(player_struct: &mut Player){
     player_struct.new_encoded_name = new_encoded_name;
 }
 
-fn load_save_file(game_struct: &mut Game, player_struct: &mut Player){
+fn get_enemy_name(file_buffer: &Vec<u8>, enemy: &mut Enemy){
+    let mut index=0;
+    let mut encoded_name: [u8; 11] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+    'get_characters: for c in 0x25F6..0x25f6+0xB{
+        if file_buffer[c] == 80{
+            break 'get_characters
+        } else {
+            encoded_name[index] = file_buffer[c];
+            index += 1;
+        }
+    }
+
+    enemy.name = first_gen_to_ascii(encoded_name);
+}
+
+fn load_save_file(game_struct: &mut Game, player_struct: &mut Player, enemy: &mut Enemy){
     let mut file_path = String::new();
 
     print!("Input your file save path: ");
@@ -117,28 +169,31 @@ fn load_save_file(game_struct: &mut Game, player_struct: &mut Player){
         .read_line(&mut file_path)
         .expect("Failed to read user input");
 
+
     game_struct.save_file_path = file_path;
     game_struct.save_file_buffer = create_save_file_buffer(&game_struct.save_file_path);
     player_struct.name = get_player_name(&game_struct.save_file_buffer);
     player_struct.money = get_money(game_struct);
+
+    get_enemy_name(&game_struct.save_file_buffer, enemy);
 }
 
 fn main_menu() -> i32 {
     let mut pick = String::new();
-    println!("╔══════════════════════════════════╗");
-    println!("║ 1. Load save file                ║");
-    println!("║ 2. Print stats (Buffered)        ║");
-    println!("║ 3. Print stats (From file)(WIP)  ║");
-    println!("╠══════════════════════════════════╣");
-    println!("║ 4. Change my name                ║");
-    println!("║ 5. Change my money(WIP)          ║");
-    println!("╠══════════════════════════════════╣");
-    println!("║ 7. Change my rival's name(WIP)   ║");
-    println!("╠══════════════════════════════════╣");
-    println!("║ 8. Write my changes(WIP)         ║");
-    println!("║ 9. Write and exit(WIP)           ║");
-    println!("║ 0. Exit                          ║");
-    println!("╚══════════════════════════════════╝");
+    println!("╔════════════════════════════════════════╗");
+    println!("║ 1. Load save file                      ║");
+    println!("║ 2. Print new stats                     ║");
+    println!("║ 3. Print unchanged stats               ║");
+    println!("╠════════════════════════════════════════╣");
+    println!("║ 4. Change my name                      ║");
+    println!("║ 5. Change my money(WIP)                ║");
+    println!("╠════════════════════════════════════════╣");
+    println!("║ 7. Print/Change my rival's name        ║");
+    println!("╠════════════════════════════════════════╣");
+    println!("║ 8. Write my changes(WIP)               ║");
+    println!("║ 9. Write and exit(WIP)                 ║");
+    println!("║ 0. Exit                                ║");
+    println!("╚════════════════════════════════════════╝");
     print!("--> ");
     io::stdout().flush().unwrap();
     io::stdin()
