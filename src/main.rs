@@ -58,7 +58,6 @@ fn main() {
             2 => { 
                 println!("Your name is: {}", player.name);
                 println!("You have ${}", player.money);
-                println!("[DEBUG] Encoded money: {:?}", player.encoded_money);
             }
             3 => {
                 println!("Your name is: {}", original_player.name);
@@ -71,9 +70,10 @@ fn main() {
                 change_money_menu(&mut player);
             }
             6 => {
+                println!("Your's rival name is: {}", rival.name);
             }
             7 => {
-                change_rival_name_menu(&mut rival);
+                change_rival_name(&mut rival);
             }
             8 => {
             }
@@ -117,28 +117,17 @@ fn change_player_money(player: &mut Player, ammount: i32){
     player.encoded_money = stack;
 }
 
-fn change_rival_name_menu(rival: &mut Enemy){
+fn change_rival_name(rival: &mut Enemy){
     let mut new_name = String::new();
     
-    println!("Your enemy actual's name is {}", rival.name);
-    println!("Do you want to change it? [y/N]");
-    print!("->> ");
+    println!("What will your's rival new name be?");
+    print!("--> ");
     io::stdout().flush().expect("Failed to flush stdout...");
+    new_name.clear();
     io::stdin()
         .read_line(&mut new_name)
         .expect("Failed to read user input");
 
-    if new_name.contains('Y')|| new_name.contains('y') {
-        println!("What will his new name be?");
-        print!("--> ");
-        io::stdout().flush().expect("Failed to flush stdout...");
-        new_name.clear();
-        io::stdin()
-            .read_line(&mut new_name)
-            .expect("Failed to read user input");
- 
-    }
-    
     rival.encoded_name = ascii_to_first_gen(&new_name);
     rival.name = new_name.trim().to_string();
 }
@@ -222,9 +211,10 @@ fn main_menu() -> i32 {
     println!("║ 3. Print unchanged stats               ║");
     println!("╠════════════════════════════════════════╣");
     println!("║ 4. Change my name                      ║");
-    println!("║ 5. Change my money(WIP)                ║");
+    println!("║ 5. Change my money                     ║");
     println!("╠════════════════════════════════════════╣");
-    println!("║ 7. Print/Change my rival's name        ║");
+    println!("║ 6. Print my rival's name               ║");
+    println!("║ 7. Change my rival's name              ║");
     println!("╠════════════════════════════════════════╣");
     println!("║ 8. Write my changes(WIP)               ║");
     println!("║ 9. Write and exit(WIP)                 ║");
