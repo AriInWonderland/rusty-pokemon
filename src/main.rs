@@ -1,6 +1,6 @@
 extern crate byte_string;
 
-use std::{io::{self, Write}, ops::{Index, BitOr, BitOrAssign, BitAndAssign}, os::unix::fs::DirBuilderExt, char};
+use std::{io::{self, Write}, ops::BitOrAssign, char, fs::OpenOptions};
 use io::{BufReader, Read};
 use std::fs::File;
 
@@ -76,6 +76,10 @@ fn main() {
                 change_rival_name(&mut rival);
             }
             8 => {
+                update_buffer(&mut game, &player, &rival);
+                write_changes(&game);
+            }
+            9 => {
             }
             _ => {
                 break 'main_loop;
@@ -83,6 +87,39 @@ fn main() {
         };
     }
 }
+fn update_buffer(game_struct: &mut Game, player_struct: &Player, rival_struct: &Enemy) {
+    //write player name!
+    let mut index = 0;
+    for i in 0x2598..0x2598+0xB{
+        game_struct.save_file_buffer[i] = player_struct.new_encoded_name[index];
+        index += 1;
+    }
+    
+    //last step
+    let checksum = calculate_checksum(&game_struct.save_file_buffer);
+    game_struct.save_file_buffer[0x3523] = checksum;
+    println!("[DEBUG] Written checksum {}", game_struct.save_file_buffer[0x3523]);
+}
+
+fn write_changes(game_struct: &Game) {
+    let mut save_file = OpenOptions::new()
+        .write(true)
+        .open(&game_struct.save_file_path.trim())
+        .expect("Failed to open file");
+
+    save_file.write(&game_struct.save_file_buffer).expect("Failed to write to file");
+}
+
+fn calculate_checksum(save_buffer: &Vec<u8>) -> u8 {
+    let mut checksum: i32 = 0;
+    for i in 0x2598..=0x3522{
+        checksum += save_buffer[i] as i32;
+    }
+    checksum = !checksum;
+    println!("[DEBUG] checksum: {:#0x}", checksum as u8);
+    return checksum as u8;
+}
+
 fn change_money_menu(player: &mut Player){
     let mut ammount: String = String::new();
     println!("Right now you have ${}", player.money);
@@ -103,13 +140,13 @@ fn change_player_money(player: &mut Player, ammount: i32){
     let mut index = 5;
 
     'get_vals: loop{
-    match cuantity.pop(){
+        match cuantity.pop(){
             Some(c) => {
                 stack[index] = c as u8 - 48;
                 index -= 1;
             },
             None => {break 'get_vals},
-    };
+        };
     }
 
     println!("[DEBUG]: {:?}", stack);
