@@ -1,6 +1,6 @@
 extern crate byte_string;
 
-use std::{io::{self, Write}, ops::{Index, BitOr, BitOrAssign, BitAndAssign}};
+use std::{io::{self, Write}, ops::{Index, BitOr, BitOrAssign, BitAndAssign}, os::unix::fs::DirBuilderExt, char};
 use io::{BufReader, Read};
 use std::fs::File;
 
@@ -58,6 +58,7 @@ fn main() {
             2 => { 
                 println!("Your name is: {}", player.name);
                 println!("You have ${}", player.money);
+                println!("[DEBUG] Encoded money: {:?}", player.encoded_money);
             }
             3 => {
                 println!("Your name is: {}", original_player.name);
@@ -67,6 +68,7 @@ fn main() {
                 change_player_name(&mut player);
             }
             5 => {
+                change_money_menu(&mut player);
             }
             6 => {
             }
@@ -81,6 +83,40 @@ fn main() {
         };
     }
 }
+fn change_money_menu(player: &mut Player){
+    let mut ammount: String = String::new();
+    println!("Right now you have ${}", player.money);
+    println!("How much do you want?");
+    print!("--> ");
+    io::stdout().flush().expect("Failed to flush stdout...");
+
+    io::stdin()
+        .read_line(&mut ammount)
+        .expect("Failed to read user input");
+
+    change_player_money(player, ammount.trim().parse().unwrap());
+}
+
+fn change_player_money(player: &mut Player, ammount: i32){
+    let mut stack:[u8; 6] = [0, 0, 0, 0, 0, 0];
+    let mut cuantity = ammount.to_string();
+    let mut index = 5;
+
+    'get_vals: loop{
+    match cuantity.pop(){
+            Some(c) => {
+                stack[index] = c as u8 - 48;
+                index -= 1;
+            },
+            None => {break 'get_vals},
+    };
+    }
+
+    println!("[DEBUG]: {:?}", stack);
+    player.money = ammount;
+    player.encoded_money = stack;
+}
+
 fn change_rival_name_menu(rival: &mut Enemy){
     let mut new_name = String::new();
     
